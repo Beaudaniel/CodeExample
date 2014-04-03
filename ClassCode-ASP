@@ -1,0 +1,531 @@
+<%@ Page Language="VB" AutoEventWireup="false" CodeFile="ClassCode.aspx.vb" Inherits="ClassCode" %>
+<%@ Register assembly="ExportToExcel" namespace="KrishLabs.Web.Controls" tagprefix="RK" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Assignee Search</title>
+    <style type="text/css">
+        .style2
+        {
+            text-decoration: underline;
+            font-weight: bold;
+        }
+        .style3
+        {
+            font-size: xx-small;
+        }
+        .style4
+        {
+            font-weight: bold;
+        }
+        .style5
+        {
+            font-size: small;
+        }
+        </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+    <div>
+    
+        Assignee Search: <span class="style3">Wildcard: % ; Only PatentsGreater 
+        than 5000000 for now; 10000 max results</span><br />
+        <asp:DropDownList ID="DropDownList1"  runat="server">
+            <asp:ListItem Value="all">All Codes</asp:ListItem>
+            <asp:ListItem Value="o">Primary</asp:ListItem>
+        </asp:DropDownList>
+        <asp:TextBox ID="TextBox1" Text="orbitz%" runat="server"></asp:TextBox>
+        <asp:Button ID="Button1" EnableViewState="False" CommandArgument="SqlDataSource1" CommandName="SqlDataSource1" onclientclick="SqlDataSource1" runat="server" Height="23px" Text="Search" />
+        &nbsp;<a href="#Pat"><span class="style5">Jump to Patents</span></a><asp:SqlDataSource ID="SqlDataSource1" runat="server" 
+            ConnectionString="<%$ ConnectionStrings:IPStoreReportConnectionString %>" SelectCommand="
+            
+            
+declare @drop as varchar (20)
+set @drop = 'o'
+
+declare @drop2 as varchar (20)
+set @drop2 = ''
+
+if @dropy = 'all'
+begin
+set @drop = 'o'
+set @drop2 = 'x'
+end
+
+select distinct top 10000
+
+
+t5.UPC_CLASS,
+Q.fullname,
+count(distinct t0.[PN]) as [Patents],
+case when Q2.Patents is null then 0 else Q2.Patents end [IIF1/2]
+from
+patent.dbo.PATENT_INFO as t0
+left join
+patent.dbo.PATENT_ASSIGNEE_X as t2
+on t0.Patent_ID = t2.Patent_ID
+inner join
+patent.dbo.PATENT_ASSIGNEE as t3
+on t2.Assignee_ID = t3.Assignee_ID
+left join
+patent.dbo.PATENT_UPC_X as t4
+on t0.Patent_ID = t4.Patent_ID
+left join
+patent.dbo.PATENT_UPC as t5
+on t4.upc_ID = t5.upc_ID
+left join
+(
+select distinct
+t6.UPC_CLASS,
+t6.fullname
+from
+patent.dbo.class_code_hierarchy as t6
+where t6.DEPTH = 1) as Q
+on t5.UPC_Class = Q.UPC_Class
+left join
+(
+select distinct
+t5.UPC_CLASS,
+count(distinct t1.pn) as [Patents]
+from
+patent.dbo.IIF_Patents as t1
+left join
+patent.dbo.PATENT_UPC_X as t4
+on t1.PatentID = t4.Patent_ID
+left join
+patent.dbo.PATENT_UPC as t5
+on t4.upc_ID = t5.upc_ID
+
+where t1.pn &gt; '5000000'
+and
+t4.UPC_CD in (@drop,@drop2)
+group by t5.UPC_CLASS
+) as Q2
+on Q.UPC_Class = Q2.UPC_Class
+
+
+where 
+t3.assignee like (@keyword)
+and
+t0.pn &gt;= '5000000' 
+and
+t4.UPC_CD in (@drop,@drop2)
+
+group by 
+t5.UPC_CLASS,
+Q.Fullname,
+Q2.Patents
+
+order by [Patents] desc
+" EnableCaching="True">
+        <SelectParameters>
+            <asp:FormParameter DefaultValue="orbitz%" FormField="TextBox1" Name="Keyword"/>
+            <asp:FormParameter DefaultValue="all" FormField="DropDownList1" Name="dropy"/>
+        </SelectParameters>
+</asp:SqlDataSource>
+    
+        <asp:SqlDataSource ID="SqlDataSource2" runat="server" 
+            ConnectionString="<%$ ConnectionStrings:IPStoreReportConnectionString %>" SelectCommand="
+declare @drop as varchar (20)
+set @drop = 'o'
+
+declare @drop2 as varchar (20)
+set @drop2 = ''
+
+if @dropy = 'all'
+begin
+set @drop = 'o'
+set @drop2 = 'x'
+end
+
+select distinct top 10000
+x2.assignee,
+count(distinct X.pn)[Patents]
+from
+patent.dbo.PATENT_INFO as X
+left join
+patent.dbo.PATENT_ASSIGNEE_X as X1
+on X.Patent_ID = X1.Patent_ID
+inner join
+patent.dbo.PATENT_ASSIGNEE as X2
+on X1.Assignee_ID = X2.Assignee_ID
+left join
+patent.dbo.PATENT_UPC_X as x3
+on X.Patent_ID = X3.Patent_ID
+left join
+patent.dbo.PATENT_UPC as x4
+on X3.upc_ID = X4.upc_ID
+
+where x2.assignee like (@keyword)
+and x.pn &gt;= '5000000' 
+and X4.UPC_CLASS like (@Major)
+and X3.UPC_CD in (@drop,@drop2)
+group by
+X2.assignee
+order by [Patents] desc" EnableCaching="True">
+        <SelectParameters>
+            <asp:FormParameter DefaultValue="orbitz%" FormField="TextBox1" Name="Keyword"/>
+            <asp:FormParameter DefaultValue="%" FormField="TextBox2" Name="Major" />
+            <asp:FormParameter DefaultValue="All" FormField="DropDownList1" Name="dropy" />
+        </SelectParameters>
+</asp:SqlDataSource>
+    
+        <asp:SqlDataSource ID="SqlDataSource3" runat="server" 
+            ConnectionString="<%$ ConnectionStrings:IPStoreReportConnectionString %>" SelectCommand="
+declare @drop as varchar (20)
+set @drop = 'o'
+
+declare @drop2 as varchar (20)
+set @drop2 = ''
+
+if @dropy = 'all'
+begin
+set @drop = 'o'
+set @drop2 = 'x'
+end
+
+select distinct top 10000
+X.pn [Patents],
+'&lt;a href=&quot;http://patft.uspto.gov/netacgi/nph-Parser?patentnumber=' +X.PN + '&quot;target=&quot;_blank&quot;&gt;PTO&lt;/a&gt;' AS PTO,
+X.title [Title]
+from
+*** as X
+left join
+***_X as X1
+on X.Patent_ID = X1.Patent_ID
+inner join
+***E as X2
+on X1.Assignee_ID = X2.Assignee_ID
+left join
+*** as x3
+on X.Patent_ID = X3.Patent_ID
+left join
+*** as x4
+on X3.upc_ID = X4.upc_ID
+
+where x2.assignee like (@keyword)
+and x.pn &gt;= '5000000' 
+and X4.UPC_CLASS like (@Major)
+and X3.UPC_CD in (@drop,@drop2)
+order by [Patents] desc" EnableCaching="True">
+            <SelectParameters>
+                <asp:FormParameter DefaultValue="orbitz%" FormField="TextBox1" Name="keyword" />
+                <asp:FormParameter DefaultValue="%" FormField="TextBox2" Name="Major" />
+                      <asp:FormParameter DefaultValue="All" FormField="DropDownList1" Name="dropy" />
+            </SelectParameters>
+        </asp:SqlDataSource>
+    
+        <asp:SqlDataSource ID="SqlDataSource4" runat="server" 
+            ConnectionString="<%$ ConnectionStrings:IPStoreReportConnectionString %>" SelectCommand="declare @drop as varchar (20)
+set @drop = 'o'
+
+declare @drop2 as varchar (20)
+set @drop2 = ''
+
+if @dropy = 'all'
+begin
+set @drop = 'o'
+set @drop2 = 'x'
+end
+
+select distinct top 10000
+
+
+t5.UPC,
+Q2.DESCRIPTION,
+count(distinct t0.[PN]) as [Patents],
+case when Q2.Patents is null then 0 else Q2.Patents end [IIF1/2]
+
+from
+*** as t0
+left join
+*** as t2
+on t0.Patent_ID = t2.Patent_ID
+inner join
+*** as t3
+on t2.Assignee_ID = t3.Assignee_ID
+left join
+*** as t4
+on t0.Patent_ID = t4.Patent_ID
+left join
+*** as t5
+on t4.upc_ID = t5.upc_ID
+left join
+(
+select distinct
+t5.UPC,
+t6.DESCRIPTION,
+count(distinct t1.pn) as [Patents]
+from
+*** as t1
+left join
+*** as t4
+on t1.PatentID = t4.Patent_ID
+left join
+*** as t5
+on t4.upc_ID = t5.upc_ID
+left join
+*** as t6
+on t5.SEQUENCE_ID = t6.SEQUENCE_ID
+
+where t1.pn &gt; '5000000'
+and
+t4.UPC_CD in (@drop,@drop2)
+and
+t5.UPC_CLASS like @Major
+
+group by t5.UPC,t6.DESCRIPTION
+) as Q2
+on t5.UPC = Q2.UPC
+
+
+where 
+t3.assignee like (@keyword)
+and
+t0.pn &gt;= '5000000' 
+and
+t4.UPC_CD in (@drop,@drop2)
+and
+t5.UPC_CLASS like @Major
+
+group by 
+t5.UPC,
+Q2.DESCRIPTION,
+Q2.Patents
+
+order by [Patents] desc">
+            <SelectParameters>
+                <asp:FormParameter DefaultValue="All" FormField="DropDownList1" Name="dropy" />
+                <asp:FormParameter DefaultValue="%" FormField="TextBox2" Name="Major" />
+                <asp:FormParameter DefaultValue="orbitz%" FormField="TextBox1" Name="keyword" />
+            </SelectParameters>
+        </asp:SqlDataSource>
+    
+    </div>
+    <span class="style2">
+    <br />
+        Assignee Matches:</span><asp:GridView ID="GridView2" 
+        runat="server" ShowFooter="true" AutoGenerateColumns="False" 
+        DataSourceID="SqlDataSource2" CellPadding="4" ForeColor="#333333" 
+        GridLines="None">
+        <RowStyle BackColor="#EFF3FB" />
+        <Columns>
+            <asp:BoundField DataField="assignee" HeaderText="Assignee" 
+                SortExpression="assignee" FooterText="Total" />
+        <asp:TemplateField HeaderText="Patents" ItemStyle-HorizontalAlign ="Center" FooterStyle-HorizontalAlign ="Center" FooterStyle-Font-Bold="True">
+        <ItemTemplate>
+            <%#GetUnitPrice(Eval("Patents"))%>
+        </ItemTemplate>
+        <FooterTemplate>
+            <%#GetTotal()%>
+        </FooterTemplate>
+        </asp:TemplateField>
+        </Columns>
+        <FooterStyle BackColor="#507CD1" Font-Bold="True" ForeColor="White" />
+        <PagerStyle BackColor="#2461BF" ForeColor="White" HorizontalAlign="Center" />
+        <SelectedRowStyle BackColor="#D1DDF1" Font-Bold="True" ForeColor="#333333" />
+        <HeaderStyle BackColor="#507CD1" Font-Bold="True" ForeColor="White" />
+        <EditRowStyle BackColor="#2461BF" />
+        <AlternatingRowStyle BackColor="White" />
+    </asp:GridView>
+    <span class="style2">
+    <br />
+    Major Class Chart:</span><span class="style4">&nbsp;&nbsp;&nbsp;&nbsp;<asp:Button 
+        ID="Button3" runat="server" Height="20px" Text="Original" />
+&nbsp;&nbsp;</span><asp:Button ID="Button2" runat="server" Height="20px" Text="IIF1/2" 
+        Width="62px" />
+    &nbsp;Drill Down (% for all):
+    <asp:TextBox ID="TextBox2" runat="server" Height="20px" Width="53px"></asp:TextBox>
+    <br />
+    <br />
+    <asp:MultiView ID="MultiView1" ActiveViewIndex="0" runat="server">
+    <asp:View ID="View1" runat="server">
+        <asp:Chart ID="Chart1" runat="server" DataSourceID="SqlDataSource1" 
+        Width="1200px">
+        <Series>
+            <asp:Series Name="Patents"  ChartType="Column" XValueMember="UPC_Class" 
+                YValueMembers="Patents" IsValueShownAsLabel="True" LabelForeColor="Red" 
+                Font="Microsoft Sans Serif, 12pt, style=Bold" LabelBorderDashStyle="Dash" 
+                LabelBorderWidth="3">
+            </asp:Series>
+        </Series>
+        <ChartAreas>
+            <asp:ChartArea Name="ChartArea1" BackColor="White" BorderColor="Transparent" 
+                BorderDashStyle="Dot" ShadowColor="Transparent">
+            
+                <AxisY IntervalAutoMode="VariableCount">
+                    <MajorTickMark Enabled="False" />
+                </AxisY>
+                <AxisX IsStartedFromZero="False" 
+                    LabelAutoFitMaxFontSize="8" Interval="1" intervalautomode="VariableCount">
+                    <MajorGrid Enabled="False" Interval="Auto" />
+                    <MajorTickMark Enabled="False" Interval="Auto" />
+                    <LabelStyle Interval="Auto" />
+                    <ScaleBreakStyle Spacing="1" />
+                </AxisX>
+            </asp:ChartArea>
+        </ChartAreas>
+    </asp:Chart>
+    </asp:View>
+    <asp:View ID="View2" runat="server">
+            <asp:Chart ID="Chart2" runat="server" DataSourceID="SqlDataSource1" 
+        Width="1200px">
+        <Legends>
+            <asp:Legend Name="Legend1">
+            </asp:Legend>
+        </Legends>
+        <Series>
+            <asp:Series Name="Search"  ChartType="StackedColumn" XValueMember="UPC_Class" 
+                YValueMembers="Patents" IsValueShownAsLabel="True" Legend="Legend1" LabelForeColor="Red" 
+                Font="Microsoft Sans Serif, 12pt, style=Bold" LabelBorderDashStyle="Dash" 
+                LabelBorderWidth="3">
+            </asp:Series>
+            <asp:Series Name="IIF1/2"  ChartType="StackedColumn" XValueMember="UPC_Class" 
+                YValueMembers="IIF1/2" IsValueShownAsLabel="True" Legend="Legend1" LabelForeColor="Green" 
+                Font="Microsoft Sans Serif, 12pt, style=Bold" LabelBorderDashStyle="Dash" 
+                LabelBorderWidth="3">
+            </asp:Series>
+        </Series>
+        <ChartAreas>
+            <asp:ChartArea Name="ChartArea1" BackColor="White" BorderColor="Transparent" 
+                BorderDashStyle="Dot" ShadowColor="Transparent">
+            
+                <AxisY IntervalAutoMode="VariableCount">
+                    <MajorTickMark Enabled="False" />
+                </AxisY>
+                <AxisX IsStartedFromZero="False" 
+                    LabelAutoFitMaxFontSize="8" Interval="1" intervalautomode="VariableCount">
+                    <MajorGrid Enabled="False" Interval="Auto" />
+                    <MajorTickMark Enabled="False" Interval="Auto" />
+                    <LabelStyle Interval="Auto" />
+                    <ScaleBreakStyle Spacing="1" />
+                </AxisX>
+            </asp:ChartArea>
+        </ChartAreas>
+    </asp:Chart>
+    </asp:View>
+    <asp:View ID="View3" runat="server">
+                <asp:Chart ID="Chart3" runat="server" DataSourceID="SqlDataSource4" 
+        Width="1200px">
+        <Legends>
+            <asp:Legend Name="Legend1">
+            </asp:Legend>
+        </Legends>
+        <Series>
+            <asp:Series Name="Search"  ChartType="StackedColumn" XValueMember="UPC" 
+                YValueMembers="Patents" IsValueShownAsLabel="True" Legend="Legend1" LabelForeColor="Red" 
+                Font="Microsoft Sans Serif, 12pt, style=Bold" LabelBorderDashStyle="Dash" 
+                LabelBorderWidth="3">
+            </asp:Series>
+            <asp:Series Name="IIF1/2"  ChartType="StackedColumn" XValueMember="UPC" 
+                YValueMembers="IIF1/2" IsValueShownAsLabel="True" Legend="Legend1" LabelForeColor="Green" 
+                Font="Microsoft Sans Serif, 12pt, style=Bold" LabelBorderDashStyle="Dash" 
+                LabelBorderWidth="3">
+            </asp:Series>
+        </Series>
+        <ChartAreas>
+            <asp:ChartArea Name="ChartArea1" BackColor="White" BorderColor="Transparent" 
+                BorderDashStyle="Dot" ShadowColor="Transparent">
+            
+                <AxisY IntervalAutoMode="VariableCount">
+                    <MajorTickMark Enabled="False" />
+                </AxisY>
+                <AxisX IsStartedFromZero="False" 
+                    LabelAutoFitMaxFontSize="8" Interval="1" intervalautomode="VariableCount">
+                    <MajorGrid Enabled="False" Interval="Auto" />
+                    <MajorTickMark Enabled="False" Interval="Auto" />
+                    <LabelStyle Interval="Auto" />
+                    <ScaleBreakStyle Spacing="1" />
+                </AxisX>
+            </asp:ChartArea>
+        </ChartAreas>
+    </asp:Chart>
+    </asp:View>
+    </asp:MultiView>
+ 
+    <span class="style2">Details:</span>
+         
+    <asp:MultiView ID="MultiView2" ActiveViewIndex="0" runat="server">
+    <asp:View ID="View4" runat="server">
+    <RK:ExportToExcel ID="ExportToExcel3" runat="server" ApplyStyleInExcel="True" 
+            ExportFileName="ClassResults.xls" Font-Size="Smaller" GridViewID="GridView1" 
+            IncludeTimeStamp="True" PageSize="All" Text="Export To Excel" />
+        <asp:GridView ID="GridView1" runat="server" AutoGenerateColumns="False" 
+        DataSourceID="SqlDataSource1" CellPadding="4" ForeColor="#333333" 
+        GridLines="None">
+            <RowStyle BackColor="#EFF3FB" />
+            <Columns>
+                <asp:BoundField DataField="UPC_CLASS" HeaderText="UPC_CLASS" 
+                SortExpression="UPC_CLASS" />
+                <asp:BoundField DataField="fullname" HeaderText="fullname" 
+                SortExpression="fullname" />
+                <asp:BoundField DataField="Patents" HeaderText="Patents" ReadOnly="True" 
+                SortExpression="Patents" />
+                <asp:BoundField DataField="IIF1/2" HeaderText="IIF1/2" ReadOnly="True" 
+                SortExpression="IIF1/2" />
+            </Columns>
+            <FooterStyle BackColor="#507CD1" Font-Bold="True" ForeColor="White" />
+            <PagerStyle BackColor="#2461BF" ForeColor="White" HorizontalAlign="Center" />
+            <SelectedRowStyle BackColor="#D1DDF1" Font-Bold="True" ForeColor="#333333" />
+            <HeaderStyle BackColor="#507CD1" Font-Bold="True" ForeColor="White" />
+            <EditRowStyle BackColor="#2461BF" />
+            <AlternatingRowStyle BackColor="White" />
+        </asp:GridView>
+        </asp:View>
+        <asp:View ID="View5" runat="server">
+        <RK:ExportToExcel ID="ExportToExcel2" runat="server" ApplyStyleInExcel="True" 
+            ExportFileName="UPCResults.xls" Font-Size="Smaller" GridViewID="GridView4" 
+            IncludeTimeStamp="True" PageSize="All" Text="Export To Excel" />
+          <asp:GridView ID="GridView4" runat="server" AutoGenerateColumns="False" 
+        DataSourceID="SqlDataSource4" CellPadding="4" ForeColor="#333333" 
+        GridLines="None">
+            <RowStyle BackColor="#EFF3FB" />
+            <Columns>
+                <asp:BoundField DataField="UPC" HeaderText="UPC" 
+                SortExpression="UPC" />
+                <asp:BoundField DataField="DESCRIPTION" HeaderText="DESCRIPTION" 
+                SortExpression="DESCRIPTION" />
+                <asp:BoundField DataField="Patents" HeaderText="Patents" ReadOnly="True" 
+                SortExpression="Patents" />
+                <asp:BoundField DataField="IIF1/2" HeaderText="IIF1/2" ReadOnly="True" 
+                SortExpression="IIF1/2" />
+            </Columns>
+            <FooterStyle BackColor="#507CD1" Font-Bold="True" ForeColor="White" />
+            <PagerStyle BackColor="#2461BF" ForeColor="White" HorizontalAlign="Center" />
+            <SelectedRowStyle BackColor="#D1DDF1" Font-Bold="True" ForeColor="#333333" />
+            <HeaderStyle BackColor="#507CD1" Font-Bold="True" ForeColor="White" />
+            <EditRowStyle BackColor="#2461BF" />
+            <AlternatingRowStyle BackColor="White" />
+        </asp:GridView>
+        </asp:View>
+    </asp:MultiView>
+    <br />
+    <a name="Pat">
+   <span class="style2"> Assignee's Patents:</span>
+    </a>
+    <RK:ExportToExcel ID="ExportToExcel1" runat="server" ApplyStyleInExcel="True" 
+            ExportFileName="Results.xls" Font-Size="Smaller" GridViewID="GridView3" 
+            IncludeTimeStamp="True" PageSize="All" Text="Export To Excel" />
+            
+    <asp:GridView ID="GridView3" runat="server" AutoGenerateColumns="False" 
+        CellPadding="4" DataSourceID="SqlDataSource3" ForeColor="#333333" 
+        GridLines="None">
+        <RowStyle BackColor="#EFF3FB" />
+        <Columns>
+            <asp:BoundField DataField="Patents" HeaderText="Patents" 
+                SortExpression="Patents" />
+            <asp:BoundField DataField="PTO" HeaderText="PTO" SortExpression="PTO" 
+                HtmlEncode="False" ReadOnly="True" />
+            <asp:BoundField DataField="Title" HeaderText="Title" SortExpression="Title" />
+        </Columns>
+        <FooterStyle BackColor="#507CD1" Font-Bold="True" ForeColor="White" />
+        <PagerStyle BackColor="#2461BF" ForeColor="White" HorizontalAlign="Center" />
+        <SelectedRowStyle BackColor="#D1DDF1" Font-Bold="True" ForeColor="#333333" />
+        <HeaderStyle BackColor="#507CD1" Font-Bold="True" ForeColor="White" />
+        <EditRowStyle BackColor="#2461BF" />
+        <AlternatingRowStyle BackColor="White" />
+    </asp:GridView>
+    </form>
+</body>
+</html>
