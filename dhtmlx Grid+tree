@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>	       
+    <link rel="stylesheet" type="text/css" href="AtreyeeDhar/dhtmlxlayout.css">
+	<link rel="stylesheet" type="text/css" href="AtreyeeDhar/dhtmlxlayout_dhx_blue.css">
+	<link rel="stylesheet" type="text/css" href="dhtmlxtree.css">
+	<link rel="STYLESHEET" type="text/css" href="codebase/dhtmlxgrid.css">
+	<link rel="STYLESHEET" type="text/css" href="codebase/skins/dhtmlxtoolbar_dhx_blue.css">
+	<script src="AtreyeeDhar/dhtmlxcommon.js"></script>
+	<script src="AtreyeeDhar/dhtmlxlayout.js"></script>
+	<script src="AtreyeeDhar/dhtmlxcontainer.js"></script>
+	<script src="AtreyeeDhar/dhtmlxtree.js"></script>
+	<script src="codebase/dhtmlxgrid.js"></script>
+    <script src="codebase/dhtmlxgridcell.js"></script>
+    <script src="codebase/ext/dhtmlxgrid_srnd.js"></script>
+    <script src="codebase/ext/dhtmlxgrid_filter.js"></script>
+    <script src="codebase/excells/dhtmlxgrid_excell_sub_row.js"></script>
+	<script src="codebase/dhtmlxtoolbar.js"></script>
+	
+    <style>
+            html, body {
+                      width: 100%;
+                      height: 100%;
+                      margin: 0px;
+                      overflow: hidden;
+              }
+    </style>
+       
+</head>
+<script>
+	var dhxLayout
+	function doOnLoad() 
+    {
+		dhxLayout = new dhtmlXLayoutObject(document.body,"2U","dhx_blue");
+		dhxLayout.cells("a").setText("Taxonomy");
+		dhxLayout.cells("b").setText("Patents");
+		
+		dhxLayout.cells("a").setWidth(300);
+		
+		var dhxtree = dhxLayout.cells("a").attachTree();
+			dhxtree.setSkin("dhx_skyblue");
+			dhxtree.setImagePath("AtreyeeDhar/csh_bluebooks/");
+			dhxtree.enableCheckBoxes(1);
+			dhxtree.loadXML("AtreyeeDhar/tree4.xml");	
+
+		var mygrid = dhxLayout.cells("b").attachGrid();
+ 
+			mygrid.setImagePath("codebase/imgs/");
+     
+            mygrid.setHeader("Count,Patent,Link,Priority,Deal#,Deal,LRank,PRank,Title");
+            mygrid.attachHeader("#stat_count,#text_filter,&nbsp;,#text_filter,#numeric_filter,#text_filter,#numeric_filter,#numeric_filter,#text_filter,#cspan");
+            mygrid.setInitWidths("55,60,50,65,50,170,50,50,610");
+
+            mygrid.setEditable(true);            
+ 
+            mygrid.setColAlign("left,left,center,center,center,Left,center,center,Left");
+            mygrid.setColTypes("sub_row_grid,edtxt,txt,co,edtxt,txt,edtxt,edtxt,ro"); 
+            mygrid.setSkin("light");
+
+            mygrid.setColSorting("int,int,str,int,int,str,str,str,str");
+            mygrid.init();
+            mygrid.enableSmartRendering(true);
+            mygrid.attachEvent("onSubGridCreated",function(subgrid,id,ind,data){
+                subgrid.loadXML('DBsub.py?PN='+data);
+                return false; // prevent default behavior
+                })
+            
+            mygrid.loadXML('DBtest2.py?""" + query + """');
+			
+		var dhxToolbar = dhxLayout.cells("b").attachToolbar();
+			dhxToolbar.setIconsPath("codebase/imgs/"); 
+			dhxToolbar.addButton("SaveButton", 1, "Export","Excel.png");
+			dhxToolbar.addSeparator("Line",2);
+			dhxToolbar.addInput("tags",3,"tags",150);
+			dhxToolbar.addText("Filters",4,"Program:");
+			dhxToolbar.addInput("Program",5,"",100);
+			dhxToolbar.addText("Filters",6,"Company:");
+			dhxToolbar.addInput("Company",7,"",100);
+			dhxToolbar.addText("Filters",8,"Current Filters: ");
+			
+			var commy
+			var tagy
+			
+			function comma()
+			{
+			tagy = dhxToolbar.getValue("tags");
+			if(tagy =='tags')
+			{
+			commy = ''
+			tagy = ''
+			}
+			else{
+			commy = ','
+			}
+			return tagy + commy;
+			} 
+			
+			dhxToolbar.attachEvent("onClick", function(id){window.open('DBtest2.py?Format=csv&tags='+comma()+dhxtree.getAllChecked()+'&Program='+dhxToolbar.getValue("Program")+'&Company='+dhxToolbar.getValue("Company"));});
+			
+			dhxtree.attachEvent("onCheck", function(id,state){
+				dhxToolbar.setItemText("Filters",dhxToolbar.getItemText("Filters")+dhxtree.getAllChecked());
+				mygrid.clearAll();
+				mygrid.loadXML('DBtest2.py?tags='+comma()+dhxtree.getAllChecked()+'&Program='+dhxToolbar.getValue("Program")+'&Company='+dhxToolbar.getValue("Company"));
+				});
+
+			dhxToolbar.attachEvent("onEnter", function(id, value){
+				dhxToolbar.setItemText("Filters",dhxToolbar.getItemText("Filters")+dhxToolbar.getValue("tags")+dhxtree.getAllChecked()+dhxToolbar.getValue("Program")+dhxToolbar.getValue("Company"));
+				mygrid.clearAll();
+				mygrid.loadXML('DBtest2.py?tags='+comma()+dhxtree.getAllChecked()+'&Program='+dhxToolbar.getValue("Program")+'&Company='+dhxToolbar.getValue("Company"));
+				});
+
+	} 
+</script>	
+<body onload="doOnLoad();">
+	</body>
+</html>
