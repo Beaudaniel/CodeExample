@@ -1,0 +1,54 @@
+<html>
+    <head>
+        <title>Dhtmlx test</title>
+    </head>
+        <link rel="STYLESHEET" type="text/css" href="codebase/dhtmlxgrid.css">
+        <script src="codebase/dhtmlxcommon.js"></script>
+        <script src="codebase/dhtmlxgrid.js"></script>
+        <script src="codebase/dhtmlxgridcell.js"></script>
+        <script src="codebase/ext/dhtmlxgrid_srnd.js"></script>
+        <script src="codebase/ext/dhtmlxgrid_filter.js"></script>
+        <script src="codebase/excells/dhtmlxgrid_excell_sub_row.js"></script>
+        <script>
+        //we'll write script commands here
+        var gridQString = "";//we'll save here the last url with query string we used for loading grid (see step 5 for details)
+        //we'll use this script block for function
+        var mygrid;
+        function doInitGrid(){  	
+            mygrid = new dhtmlXGridObject('mygrid_container');
+ 
+            mygrid.setImagePath("codebase/imgs/");
+ 
+            mygrid.setHeader("Count,Patent,Link,Priority,Deal#,Deal,Title");
+            mygrid.attachHeader("#stat_count,#text_filter,&nbsp;,#text_filter,#numeric_filter,#text_filter,#text_filter,#cspan");
+            mygrid.setInitWidths("55,60,50,65,50,170,600");
+
+            mygrid.setEditable(true);            
+ 
+            mygrid.setColAlign("left,left,center,center,center,Left,Left");
+            mygrid.setColTypes("sub_row_grid,edtxt,txt,co,edtxt,txt,ro"); 
+            mygrid.setSkin("light");
+
+            mygrid.setColSorting("int,int,str,int,str,str");
+            mygrid.init();
+            mygrid.enableSmartRendering(true);
+
+            mygrid.attachEvent("onSubGridCreated",function(subgrid,id,ind,data){
+                subgrid.loadXML("sub2.xml");
+                return false; // prevent default behavior
+                })
+            
+            mygrid.loadXML("data2.xml");
+
+        }
+        </script>
+   <body onload="doInitGrid();">
+   <form name="input" action="dbtest2.py" method="get">
+    Tags: <input type="text" name="tags" />
+    <input type="submit" value="Submit" />
+    </form> 
+    Owned and active US Patents
+    <br>
+    <div id="mygrid_container" style="width:1070px;height:500px;"></div>
+    </body>
+</html>
