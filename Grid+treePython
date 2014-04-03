@@ -1,0 +1,217 @@
+#!C:/Python25/python.exe
+import adodbapi
+import os
+import re
+import fileinput
+import cgi
+import cgitb; cgitb.enable()
+import urllib
+import glob, time
+import sys
+
+try:
+    query = os.environ['QUERY_STRING']
+except:
+    query = ''
+tags = cgi.parse_qs(query).get('tags', [''])[0]
+Program = cgi.parse_qs(query).get('Program', [''])[0]
+Company = cgi.parse_qs(query).get('Company', [''])[0]
+Format = cgi.parse_qs(query).get('Format', [''])[0]
+
+filters = tags+Program+Company
+if filters != '':
+    filters = tags +','+Program+','+Company
+else:
+    filters = 'None'
+
+
+def xmlResponse():
+    x = 0
+    #    adodbapi.adodbapi.verbose = True # adds details to the sample printout
+    _computername="ivpssql03" #or name of computer with SQL Server
+    _databasename="IIFDReport" #or something else
+    # this will open a MS-SQL table with Windows authentication
+    constr = r"Initial Catalog=%s; Data Source=%s; Provider=SQLOLEDB.1; Integrated Security=SSPI" %(_databasename, _computername)
+    #tell the server  we are not planning to update...
+    adodbapi.adodbapi.defaultIsolationLevel = adodbapi.adodbapi.adXactBrowse
+    #and we want a local cursor
+    adodbapi.adodbapi.defaultCursorLocation = adodbapi.adodbapi.adUseClient
+    #create the connection and make a cursor
+    con = adodbapi.connect(constr)
+    c = con.cursor()
+    # fetch the data
+    sql = "select distinct [Patent Number],[First Filing Date],[Deal Number], replace(replace(replace(replace(Deal,'&',' and '),'"+chr(246)+"','o'),'"+chr(60)+"',''),'"+chr(62)+"',''),case when min(x.LRank) = '' then Null else min(x.LRank) end [Min Lrank],case when min(x.LRank) = '' then Null  else min(x.PRank) end [Min PRank],replace(cast([title] as varchar(300)),'&',' and ') [title]" +\
+    " from IIFDReport.dbo.vwBrowse_DumpToOC left join [TechAnalysis].[dbo].[SikorskyCopy] on [patent number] = [patent] left join [TechAnalysis].dbo.SubscriptionCopy as x on x.patent = [patent number]" +\
+    " where [status] = 'granted' and [country] = 'United States'"
+    if tags != '':
+        sql = sql + "and [data] in ('"+tags.replace(",","','")+"')"
+    if Program != '':
+        sql = sql + "and x.Program in ('"+Program+"')"
+    if Company != '':
+        sql = sql + "and x.Company in ('"+Company+"')"
+    sql = sql + "group by [patent number], [first filing date], [deal number],[deal],cast([title] as varchar(300)) order by [deal number],[Title]"
+
+    c.execute(sql)
+    db = c.fetchmany(c.rowcount)
+    gridXML = []
+    gridXML.append('''Content-Type: text/xml
+''')
+    gridXML.append('<?xml version="1.0" encoding="UTF-8"?>\n')
+    gridXML.append('<rows>\n')
+    for number,date,deal1,deal2,Rank,PRank,Title in db:
+        if number in ['5467397','5463689','5505901',]:
+            Title = 'Junk Title In DB'
+        gridXML.append('<row id="' + str(x) + '">\n')
+        gridXML.append('<cell>')
+        gridXML.append(number)
+        gridXML.append('</cell>\n')
+        gridXML.append('<cell>')
+        gridXML.append(number)
+        gridXML.append('</cell>\n')
+        gridXML.append('<cell><![CDATA[ <a href="http://patft.uspto.gov/netacgi/nph-Parser?patentnumber=%s">PTO</a> ]]></cell>' % number)
+        gridXML.append('<cell>')
+        gridXML.append(str(date))
+        gridXML.append('</cell>\n')
+        gridXML.append('<cell>')
+        gridXML.append(str(deal1))
+        gridXML.append('</cell>\n')
+        gridXML.append('<cell>')
+        gridXML.append(str(deal2))
+        gridXML.append('</cell>\n')
+        gridXML.append('<cell>')
+        gridXML.append(str(Rank))
+        gridXML.append('</cell>\n')
+        gridXML.append('<cell>')
+        gridXML.append(str(PRank))
+        gridXML.append('</cell>\n')
+        gridXML.append('<cell>')
+        gridXML.append(str(Title))
+        gridXML.append('</cell>\n')
+        gridXML.append('</row>\n')
+        x = x+1
+    gridXML.append('</rows>')
+    c.close()
+    con.close()
+    return '\n'.join(gridXML)
+
+def csvResponse():
+        #    adodbapi.adodbapi.verbose = True # adds details to the sample printout
+    _computername="ivpssql03" #or name of computer with SQL Server
+    _databasename="IIFDReport" #or something else
+    # this will open a MS-SQL table with Windows authentication
+    constr = r"Initial Catalog=%s; Data Source=%s; Provider=SQLOLEDB.1; Integrated Security=SSPI" %(_databasename, _computername)
+    #tell the server  we are not planning to update...
+    adodbapi.adodbapi.defaultIsolationLevel = adodbapi.adodbapi.adXactBrowse
+    #and we want a local cursor
+    adodbapi.adodbapi.defaultCursorLocation = adodbapi.adodbapi.adUseClient
+    #create the connection and make a cursor
+    con = adodbapi.connect(constr)
+    c = con.cursor()
+    # fetch the data
+    sql = "select distinct [Patent Number],[First Filing Date],[Deal Number], replace(replace(replace(replace(Deal,'&',' and '),'"+chr(246)+"','o'),'"+chr(60)+"',''),'"+chr(62)+"',''),case when min(x.LRank) = '' then Null else min(x.LRank) end [Min Lrank],case when min(x.LRank) = '' then Null else min(x.PRank) end [Min PRank],replace(cast([title] as varchar(300)),'&',' and ') [title]" +\
+    " from ***
+    " where [status] = 'granted' and [country] = 'United States'"
+    if tags != '':
+        sql = sql + "and [data] in ('"+tags.replace(",","','")+"')"
+    if Program != '':
+        sql = sql + "and x.Program in ('"+Program+"')"
+    if Company != '':
+        sql = sql + "and x.Company in ('"+Company+"')"
+    sql = sql + "group by [patent number], [first filing date], [deal number],[deal],cast([title] as varchar(300)) order by [deal number],[Title]"
+
+    c.execute(sql)
+    db = c.fetchmany(c.rowcount)                
+    print """\
+Content-type: text/csv
+Content-disposition: attachment; filename=grid.csv
+
+PatentNumber,Priority,DN,Deal,LRank,PRank,Title"""
+    for number,date,deal1,deal2,LRank,PRank,Title in db:
+        print ','.join([number,str(date),str(deal1),str(deal2),str(LRank),str(PRank),str(Title)])
+    c.close()
+    con.close()
+    
+def htmlResponse():
+    html = """\
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>	       
+    <link rel="stylesheet" type="text/css" href="AtreyeeDhar/dhtmlxlayout.css">
+	<link rel="stylesheet" type="text/css" href="AtreyeeDhar/dhtmlxlayout_dhx_blue.css">
+	<link rel="stylesheet" type="text/css" href="dhtmlxtree.css">
+	<link rel="STYLESHEET" type="text/css" href="codebase/dhtmlxgrid.css">
+	<script src="AtreyeeDhar/dhtmlxcommon.js"></script>
+	<script src="AtreyeeDhar/dhtmlxlayout.js"></script>
+	<script src="AtreyeeDhar/dhtmlxcontainer.js"></script>
+	<script src="AtreyeeDhar/dhtmlxtree.js"></script>
+	<script src="codebase/dhtmlxgrid.js"></script>
+    <script src="codebase/dhtmlxgridcell.js"></script>
+    <script src="codebase/ext/dhtmlxgrid_srnd.js"></script>
+    <script src="codebase/ext/dhtmlxgrid_filter.js"></script>
+    <script src="codebase/excells/dhtmlxgrid_excell_sub_row.js"></script>
+	
+    <style>
+            html, body {
+                      width: 100%;
+                      height: 100%;
+                      margin: 0px;
+                      overflow: hidden;
+              }
+    </style>
+       
+</head>
+<script>
+	var dhxLayout
+	function doOnLoad() 
+    {
+    dhxLayout = new dhtmlXLayoutObject(document.body,"3L","dhx_blue");
+    dhxLayout.cells("a").setText("Taxonomy");
+    dhxLayout.cells("b").setText("Filters");
+		dhxLayout.cells("c").setText("Grid");
+		var dhxtree = dhxLayout.cells("a").attachTree();
+			dhxtree.setSkin("dhx_skyblue");
+			dhxtree.setImagePath("AtreyeeDhar/csh_bluebooks/");
+			dhxtree.enableCheckBoxes(1);
+			dhxtree.loadXML("AtreyeeDhar/tree4.xml");			
+		dhxLayout.cells("b").attachURL("//colt/dhtmlx/Filters.html");
+		
+		var mygrid = dhxLayout.cells("c").attachGrid();
+		    mygrid.setImagePath("codebase/imgs/");
+
+            mygrid.setImagePath("codebase/imgs/");
+            mygrid.setHeader("Count,Patent,Link,Priority,Deal#,Deal,LRank,PRank,Title");
+            mygrid.attachHeader("#stat_count,#text_filter,&nbsp;,#text_filter,#numeric_filter,#text_filter,#numeric_filter,#numeric_filter,#text_filter,#cspan");
+            mygrid.setInitWidths("55,60,50,65,50,170,50,50,610");
+
+            mygrid.setEditable(true);            
+ 
+            mygrid.setColAlign("left,left,center,center,center,Left,center,center,Left");
+            mygrid.setColTypes("sub_row_grid,edtxt,txt,co,edtxt,txt,edtxt,edtxt,ro"); 
+            mygrid.setSkin("light");
+
+            mygrid.setColSorting("int,int,str,int,int,str,str,str,str");
+            mygrid.init();
+            mygrid.enableSmartRendering(true);
+            mygrid.attachEvent("onSubGridCreated",function(subgrid,id,ind,data){
+                subgrid.loadXML('DBsub.py?PN='+data);
+                return false; // prevent default behavior
+                })
+            
+            mygrid.loadXML('DBtest2.py?""" + query + """')
+            dhxtree.attachEvent("onCheck", function(id,state){window.navigate("DBtest2.py?tags=media");});
+
+	} 
+</script>	
+<body onload="doOnLoad();">
+	</body>
+</html>
+"""
+    return 'Content-type: text/html\n\n' + html
+
+if cgi.parse_qs(query).get('tags', ['1'])[0] == 'bobo':
+    print xmlResponse()
+if cgi.parse_qs(query).get('Format', ['1'])[0] == 'csv':
+    print csvResponse()
+if os.environ.get('HTTP_X_REQUESTED_WITH', '') == 'XMLHttpRequest':
+    print xmlResponse()
+else:
+    print htmlResponse()
